@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MozBlue Tasks</title>
+<meta name="theme-color" content="#08130f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="xlsx.full.min.js" defer></script>
+<script src="seed.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: forest hero (generative mangrove canopy) with transparent nav and big rounded headline; content on deep green below in soft rounded panels; glass bottom bar on phone.
+   Single deliberate dark theme: the forest look is the identity, so colours are set explicitly for every viewer. */
+:root{
+  color-scheme:dark;
+  --night:#08130f; --forest:#0d1d17; --moss:#132a21; --panel:#14261f; --panel-2:#1a3128; --line:rgba(214,236,224,.12); --line-2:rgba(214,236,224,.22);
+  --text:#eef4f0; --text-2:#c8d6cf; --muted:#93a89e; --faint:#6d8278;
+  --peri:#7f96f4; --peri-2:#a3b4ff; --peri-ink:#0b1430;
+  --c1:#8ea2ff; --c2:#5fd3a0; --c3:#f2a65a; --c4:#c99bf5;
+  --bad:#ff8a7a; --bad-wash:rgba(255,138,122,.14); --warn:#f3c26b; --warn-wash:rgba(243,194,107,.14); --good:#7fdca6; --good-wash:rgba(127,220,166,.14);
+  --font-display:"Outfit",ui-rounded,"SF Pro Rounded",system-ui,sans-serif;
+  --font-ui:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-code:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:18px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--forest);margin:0}
+body{color:var(--text);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--night)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--peri-2);outline-offset:2px}
+.wrap{max-width:1140px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+
+/* ---------- hero */
+.hero{position:relative;overflow:hidden;background:var(--night);isolation:isolate}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-2}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(180deg,rgba(8,19,15,.55) 0%,rgba(8,19,15,.15) 30%,rgba(8,19,15,.35) 62%,var(--forest) 100%),
+  radial-gradient(120% 70% at 15% 85%,rgba(8,19,15,.75),transparent 60%)}
+nav.top{display:flex;align-items:center;gap:24px;padding-block:22px 10px}
+.mark{display:flex;align-items:center;gap:12px;margin-right:auto;text-decoration:none;color:var(--text)}
+.mark svg{width:38px;height:38px}
+.mark b{font-family:var(--font-display);font-weight:600;font-size:24px;letter-spacing:-.01em;line-height:1}
+.mark small{white-space:nowrap;display:block;font-family:var(--font-display);font-size:10.5px;letter-spacing:.32em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.tabs{display:flex;gap:20px}
+@media (max-width:1300px){.tabs{gap:15px}.tabs button{font-size:15px}}
+.tabs button{white-space:nowrap;border:0;background:none;color:rgba(238,244,240,.82);font-family:var(--font-display);font-size:16.5px;font-weight:400;padding:6px 0;cursor:pointer;position:relative}
+.tabs button:hover{color:#fff}
+.tabs button[aria-selected="true"]{color:#fff}
+.tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;border-radius:2px;background:var(--peri-2)}
+.cta{white-space:nowrap;border:0;border-radius:999px;background:var(--peri);color:#fff;font-family:var(--font-display);font-size:16px;font-weight:500;padding:12px 26px;cursor:pointer;box-shadow:0 10px 30px rgba(127,150,244,.28);transition:background .2s,transform .2s}
+.cta:hover{background:var(--peri-2);transform:translateY(-1px)}
+.cta.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px)}
+.hero-body{padding-block:clamp(70px,14vw,170px) 34px}
+.eyebrow{font-family:var(--font-display);font-size:13px;letter-spacing:.28em;text-transform:uppercase;color:var(--peri-2)}
+.hero h1{font-family:var(--font-display);font-weight:600;font-size:clamp(40px,7.2vw,84px);line-height:1.02;letter-spacing:-.025em;margin:14px 0 18px;max-width:14ch;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--peri-2)}
+.hero p.lede{font-size:clamp(16px,1.6vw,19px);color:var(--text-2);max-width:46ch;margin:0 0 26px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.stages{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:46px}
+@media (max-width:820px){.stages{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.st{border:1px solid rgba(255,255,255,.12);background:rgba(13,29,23,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:16px;padding:14px 14px 12px;text-align:left;cursor:pointer;color:var(--text);transition:border-color .2s,background .2s}
+.st:hover{border-color:rgba(163,180,255,.5);background:rgba(20,38,31,.7)}
+.st .v{font-family:var(--font-display);font-size:34px;font-weight:500;line-height:1;display:block;letter-spacing:-.02em}
+.st .k{font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:7px;margin-top:6px}
+.st.alert .v{color:var(--bad)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+
+/* ---------- content */
+main{padding-block:10px 120px}
+.page-title{font-family:var(--font-display);font-size:clamp(28px,4vw,40px);font-weight:600;letter-spacing:-.02em;margin:34px 0 4px}
+.page-sub{color:var(--muted);margin:0 0 6px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:18px;align-items:start}
+@media (max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:18px 18px 8px;min-width:0}
+.panel h2{font-family:var(--font-display);font-size:18px;font-weight:500;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel h2 .n{font-size:13px;font-family:var(--font-code);color:var(--muted);background:rgba(255,255,255,.06);border-radius:999px;padding:2px 10px}
+.panel h2 .n.hot{color:var(--bad);background:var(--bad-wash)}
+.hint{font-size:12.5px;color:var(--faint)}
+.task{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:start;padding:13px 0;border-top:1px solid var(--line);cursor:pointer}
+.task:first-of-type{border-top:0}
+.task .bar4{align-self:stretch;border-radius:3px}
+.task .t b{font-weight:500;display:block;font-size:15px}
+.task .t .meta{font-size:12.5px;color:var(--muted);display:block;margin-top:2px}
+.task .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.due{font-family:var(--font-code);font-size:11.5px;color:var(--text-2);white-space:nowrap}
+.due.bad{color:var(--bad)} .due.warn{color:var(--warn)}
+.pill{font-size:11px;font-weight:600;letter-spacing:.02em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.p-upcoming{background:rgba(127,220,166,.12);color:#9fe3bd} .p-progress{background:var(--warn-wash);color:var(--warn)} .p-review{background:rgba(142,162,255,.16);color:var(--peri-2)} .p-ready{background:rgba(201,155,245,.16);color:#dcbcfa} .p-done{background:var(--good-wash);color:var(--good)}
+.flag{font-size:11px;color:var(--bad);font-weight:600}
+.wait{font-size:12px;color:var(--warn);display:block;margin-top:3px}
+.empty{padding:16px 0 18px;color:var(--faint)}
+/* components */
+.comps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:20px}
+@media (max-width:820px){.comps{grid-template-columns:minmax(0,1fr)}}
+.comp{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:20px;position:relative;overflow:hidden}
+.comp::before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--cc)}
+.comp h3{margin:0;font-family:var(--font-display);font-size:20px;font-weight:500;letter-spacing:-.01em}
+.comp .sum{font-size:13px;color:var(--muted);margin:4px 0 14px}
+.ringrow{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.ringrow svg{width:64px;height:64px;transform:rotate(-90deg);flex:none}
+.ringrow .pct{font-family:var(--font-display);font-size:26px;font-weight:500}
+.sub{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);cursor:pointer}
+.sub span{font-size:14px}
+.track{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;display:flex;gap:1px}
+.track i{display:block;height:100%}
+.sub .c{font-family:var(--font-code);font-size:11.5px;color:var(--muted);text-align:right}
+.addsub{display:flex;gap:8px;margin-top:12px}
+.addsub input{flex:1}
+/* board */
+.board{display:grid;grid-template-columns:repeat(5,minmax(230px,1fr));gap:14px;overflow-x:auto;padding:18px 0 8px}
+.colb{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--r);padding:14px 12px 6px;min-width:0}
+.colb h4{margin:0 2px 12px;font-family:var(--font-display);font-size:15px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.colb h4 span:last-child{font-family:var(--font-code);font-size:12px;color:var(--muted)}
+.card{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:12px 12px 10px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-1px);border-color:var(--line-2)}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cc)}
+.card b{font-weight:500;font-size:14.5px;display:block}
+.card .meta{font-size:12px;color:var(--muted);display:block;margin:3px 0 10px}
+.card .row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.adv{border:0;background:rgba(127,150,244,.18);color:var(--peri-2);border-radius:999px;font-size:12px;font-weight:600;padding:5px 11px;cursor:pointer}
+.adv:hover{background:var(--peri);color:#fff}
+/* timeline */
+.tl{overflow-x:auto;margin-top:18px;background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.tlgrid{position:relative;min-width:780px}
+.tlhead,.tlrow{display:grid;grid-template-columns:210px 1fr;align-items:center}
+.tlhead .wk{display:grid;font-family:var(--font-code);font-size:10.5px;color:var(--faint)}
+.tlrow{min-height:36px}
+.tlrow .lab{font-size:13px;color:var(--text-2);padding-right:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlrow .lane{position:relative;height:36px}
+.tlrow .b{position:absolute;top:10px;height:16px;border-radius:999px;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+.tlrow .b.done{opacity:.3}
+.tlrow .b.late{box-shadow:0 0 0 2px var(--bad)}
+.tlgroup{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--text);padding:16px 0 4px;display:flex;align-items:center;gap:8px}
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--peri-2);z-index:2;border-radius:2px;box-shadow:0 0 12px rgba(163,180,255,.6)}
+.weekline{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+/* people */
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:16px;margin-top:18px}
+.person{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.person .ph{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:600;color:var(--night);flex:none}
+.person .ph b{font-family:var(--font-display);font-weight:500;font-size:17px;display:block}
+.person .ph span{font-size:12.5px;color:var(--muted)}
+.person ul{margin:0;padding:0;list-style:none;font-size:13.5px}
+.person li{padding:7px 0;display:flex;justify-content:space-between;gap:10px;color:var(--text-2);border-top:1px solid var(--line)}
+/* forms */
+.formcard{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px;margin-top:20px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:560px){.row2{grid-template-columns:minmax(0,1fr)}}
+label.f{display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--muted);font-weight:500;min-width:0}
+input,select,textarea{background:rgba(8,19,15,.55);border:1px solid var(--line-2);border-radius:12px;padding:11px 13px;min-width:0;width:100%;font-size:15px;color:var(--text)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+input:focus,select:focus,textarea:focus{border-color:var(--peri-2);outline:none}
+select option{background:var(--forest)}
+textarea{min-height:80px;resize:vertical}
+input[type=date]{color-scheme:dark}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line-2);background:rgba(255,255,255,.03);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer;color:var(--text-2)}
+.chip[aria-pressed="true"]{background:var(--peri);color:#fff;border-color:var(--peri)}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.flow{grid-template-columns:minmax(0,1fr)}}
+.stepbox{border:1px solid var(--line-2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;background:rgba(8,19,15,.3)}
+.stepbox b{font-family:var(--font-display);font-size:14px;font-weight:500}
+.stepbox.on{border-color:rgba(127,220,166,.55);background:var(--good-wash)}
+.btn{border:1px solid var(--line-2);background:rgba(255,255,255,.04);border-radius:999px;padding:10px 20px;font-weight:500;cursor:pointer;color:var(--text)}
+.btn.sm{padding:6px 14px;font-size:13px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.log{font-size:13px;color:var(--text-2);border-top:1px solid var(--line);padding-top:10px}
+.log div{display:grid;grid-template-columns:70px 1fr;gap:8px;padding:3px 0}
+.log span{font-family:var(--font-code);font-size:11.5px;color:var(--faint)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.filters select,.filters input{width:auto;flex:1 1 170px}
+.listpanel{margin-top:16px}
+.bnav{display:none}
+@media (max-width:1100px){
+  .tabs,.hero .navcta{display:none}
+  .bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:8;background:rgba(13,29,23,.78);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:6px 6px}
+  .bnav button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);padding:6px 0;cursor:pointer;font-family:var(--font-display)}
+  .bnav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .bnav button[aria-selected="true"]{color:#fff}
+  .bnav .plus .c{width:44px;height:44px;border-radius:50%;background:var(--peri);color:#fff;display:grid;place-items:center;margin-top:-18px;box-shadow:0 8px 22px rgba(127,150,244,.45)}
+  .hero-body{padding-block:56px 26px}
+}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);background:var(--peri);color:#fff;padding:10px 20px;border-radius:999px;font-weight:500;z-index:20;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.preview-tag{font-family:var(--font-code);font-size:10px;letter-spacing:.08em;color:var(--warn);border:1px solid rgba(243,194,107,.4);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.morelist{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.morelist button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;cursor:pointer;color:var(--text)}
+.morelist b{font-family:var(--font-display);font-weight:500;font-size:17px}.morelist span{font-size:13px;color:var(--muted)}
+.datap{padding-bottom:18px}.datap .hint{margin:4px 0 14px;display:block}
+.btn.danger{border-color:rgba(255,138,122,.5);color:var(--bad)}
+.confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--bad-wash);color:var(--text)}
+/* ---------- v2: pathway, grants, away, checklists, teams */
+.full{grid-column:1/-1}
+.awaybox{border:1px solid rgba(243,194,107,.35);background:linear-gradient(180deg,rgba(243,194,107,.10),rgba(243,194,107,.04));border-radius:var(--r);padding:16px 18px 8px}
+.awaybox h2{font-family:var(--font-display);font-size:18px;font-weight:500;margin:0 0 4px;color:var(--warn)}
+.awaybox p{margin:0 0 6px;color:var(--text-2);font-size:13.5px}
+.awayflag{font-size:11px;color:var(--warn);font-weight:600}
+.clc{font-family:var(--font-code);font-size:11px;color:var(--muted)}
+.lead{color:var(--text-2)}
+.pwsum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+@media (max-width:820px){.pwsum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.kpi .v{font-family:var(--font-display);font-size:30px;font-weight:500;line-height:1.05;display:block;letter-spacing:-.02em}
+.kpi .k{font-size:12.5px;color:var(--muted)}
+.kpi.alert .v{color:var(--bad)}
+.strip{position:relative;margin-top:18px;background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px 12px;overflow:hidden}
+.strip .rail{position:relative;height:46px}
+.strip .rail::before{content:"";position:absolute;left:0;right:0;top:22px;height:2px;background:var(--line-2);border-radius:2px}
+.strip .gdot{position:absolute;top:16px;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid var(--forest);cursor:pointer}
+.strip .gdot.late{box-shadow:0 0 0 2px var(--bad)}
+.strip .mlab{position:absolute;top:0;font-family:var(--font-code);font-size:10px;color:var(--faint);transform:translateX(-50%);white-space:nowrap}
+.strip .tmark{position:absolute;top:8px;bottom:0;width:2px;background:var(--peri-2);box-shadow:0 0 10px rgba(163,180,255,.6)}
+.strip .goal{position:absolute;right:0;top:12px;font-family:var(--font-display);font-size:12px;color:var(--good)}
+.strip .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:4px}
+.qtr{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text);margin:26px 0 8px;display:flex;gap:10px;align-items:baseline}
+.qtr span{font-family:var(--font-code);font-size:11.5px;color:var(--muted);font-weight:400}
+.pwitem{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:16px;margin-bottom:10px;overflow:hidden}
+.pwrow{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:14px;align-items:center;padding:13px 16px;cursor:pointer}
+.pwrow:hover{background:rgba(255,255,255,.025)}
+.pwn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-code);font-size:12.5px;border:1.5px solid var(--line-2);color:var(--text-2)}
+.pwn.done{background:var(--good);border-color:var(--good);color:var(--night)}
+.pwn.late{border-color:var(--bad);color:var(--bad)}
+.pwrow b{font-weight:500;display:block}
+.pwrow .meta{font-size:12.5px;color:var(--muted);display:block;margin-top:2px}
+.pwrow .r{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.pbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;max-width:360px}
+.pbar i{display:block;height:100%;background:var(--good)}
+.risk{font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.risk.High{background:var(--bad-wash);color:var(--bad)} .risk.Medium{background:var(--warn-wash);color:var(--warn)} .risk.Low{background:rgba(255,255,255,.06);color:var(--muted)}
+.pwitem details{border-top:1px solid var(--line);padding:0 16px 4px 68px}
+.pwitem summary{cursor:pointer;font-size:12.5px;color:var(--peri-2);padding:9px 0;list-style:none}
+.pwitem summary::-webkit-details-marker{display:none}
+.pwitem summary::before{content:"+ ";font-family:var(--font-code)}
+.pwitem details[open] summary::before{content:"- "}
+@media (max-width:560px){.pwitem details{padding-left:16px}.pwrow{grid-template-columns:34px minmax(0,1fr)}.pwrow .r{grid-column:2;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start}}
+.cl{display:flex;flex-direction:column;gap:2px}
+.clrow{display:grid;grid-template-columns:22px minmax(0,1fr) 28px;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:14px;color:var(--text-2)}
+.clrow:first-child{border-top:0}
+.clrow input{width:18px;height:18px;padding:0;accent-color:var(--good)}
+.clrow.on span{color:var(--muted);text-decoration:line-through}
+.clrow button{border:0;background:none;color:var(--faint);cursor:pointer;font-size:18px;line-height:1}
+.clrow button:hover{color:var(--bad)}
+.teamchips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.chip.team{border-style:dashed;color:var(--peri-2)}
+.warnline{font-size:12.5px;color:var(--warn)}
+.gcard{background:linear-gradient(180deg,var(--panel),var(--moss));border:1px solid var(--line);border-radius:var(--r);padding:18px;position:relative;overflow:hidden;margin-bottom:16px}
+.gcard::before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:3px;background:var(--c3)}
+.gcard h3{margin:0;font-family:var(--font-display);font-size:19px;font-weight:500}
+.gcard .sum{font-size:13px;color:var(--muted);margin:4px 0 12px}
+.gcard .cd{font-family:var(--font-display);font-size:28px;font-weight:500;line-height:1}
+.gcard .cd small{font-size:13px;color:var(--muted);font-family:var(--font-ui);margin-left:6px}
+.gcard .nx{font-size:13px;color:var(--text-2);margin:10px 0 12px}
+.tplist{display:flex;flex-direction:column;gap:6px}
+.tplist label{display:flex;gap:10px;align-items:center;font-size:13.5px;color:var(--text-2)}
+.tplist input{width:18px;height:18px;padding:0;accent-color:var(--peri)}
+.rangebtns{display:flex;gap:6px;flex-wrap:wrap}
+.awayband{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,rgba(243,194,107,.10) 0 6px,rgba(243,194,107,.03) 6px 12px);border-left:1px solid rgba(243,194,107,.35);border-right:1px solid rgba(243,194,107,.35);z-index:1;pointer-events:none}
+.awaylist div{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--text-2)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero" id="hero">
+  <canvas id="canopy" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <nav class="top">
+      <a class="mark" href="#" onclick="return false" aria-label="MozBlue Task Tracker">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="none" stroke="#a3b4ff" stroke-width="1.5" opacity=".6"/><path d="M20 7c-5 4-7 8-7 12 0 3 2 5 7 5s7-2 7-5c0-4-2-8-7-12z" fill="#7fdca6"/><path d="M20 24v9M20 27c-3 1-5 3-6 6M20 27c3 1 5 3 6 6M20 29c-1.5 1-2.5 2.5-3 4M20 29c1.5 1 2.5 2.5 3 4" stroke="#eef4f0" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+        <span><b>MozBlue</b><small>Task tracker</small></span>
+      </a>
+      <div class="tabs" role="tablist">
+        <button data-tab="overview" aria-selected="true">Overview</button>
+        <button data-tab="today" aria-selected="false">Today</button>
+        <button data-tab="pathway" aria-selected="false">Pathway</button>
+        <button data-tab="components" aria-selected="false">Components</button>
+        <button data-tab="board" aria-selected="false">Board</button>
+        <button data-tab="timeline" aria-selected="false">Timeline</button>
+        <button data-tab="grants" aria-selected="false">Grants</button>
+        <button data-tab="people" aria-selected="false">People</button>
+        <button data-tab="all" aria-selected="false">All</button>
+        <button data-tab="data" aria-selected="false">Data</button>
+      </div>
+      <button class="cta navcta" data-go="add">Add task</button>
+    </nav>
+    <div class="hero-body">
+      <div class="eyebrow" id="heroDate"></div>
+      <h1 id="heroTitle">Restoring mangroves, one deliverable at a time</h1>
+      <p class="lede" id="heroLede"></p>
+      <div class="ctas"><button class="cta" data-go="add">Add a task</button><button class="cta ghost" data-go="pathway">Pathway to issuance</button><span class="preview-tag" id="exTag" style="align-self:center" hidden>EXAMPLE TASKS</span></div>
+      <div class="stages" id="stages"></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="tab-overview">
+    <div class="grid2">
+      <div class="panel"><h2><span>Next on the pathway</span><span class="n" id="nGate"></span></h2><div id="ovGates"></div></div>
+      <div class="panel"><h2><span>Grant deadlines</span><span class="n" id="nGr"></span></h2><div id="ovGrants"></div></div>
+    </div>
+  </section>
+  <section id="tab-today" hidden>
+    <h2 class="page-title">Today</h2><p class="page-sub" id="todaySub"></p>
+    <div class="grid2">
+      <div class="awaybox full" id="awayBox" hidden></div>
+      <div class="panel"><h2><span>Overdue</span><span class="n hot" id="nOver"></span></h2><div id="overdue"></div></div>
+      <div class="panel"><h2><span>Due in the next 7 days</span><span class="n" id="nSoon"></span></h2><div id="soon"></div></div>
+      <div class="panel"><h2><span>With Faruk or Jim</span><span class="n" id="nRev"></span></h2><div id="withRev"></div></div>
+      <div class="panel"><h2><span>Ready for final submission</span><span class="n" id="nReady"></span></h2><div id="ready"></div></div>
+      <div class="panel"><h2><span>Waiting on someone</span><span class="n" id="nWait"></span></h2><div id="waiting"></div></div>
+      <div class="panel"><h2><span>Starting in the next 14 days</span><span class="n" id="nUp"></span></h2><div id="upcoming"></div></div>
+    </div>
+  </section>
+  <section id="tab-pathway" hidden>
+    <h2 class="page-title">Pathway to issuance</h2>
+    <p class="page-sub">The critical path from project setup to credit issuance in December 2027. Tap an activity to open it; linked tasks sit underneath.</p>
+    <div class="pwsum" id="pwSum"></div>
+    <div class="strip" id="pwStrip"></div>
+    <div id="pw"></div>
+  </section>
+  <section id="tab-components" hidden><h2 class="page-title">Components</h2><p class="page-sub">Progress by subitem. Tap a subitem to see its tasks.</p><div class="comps" id="comps"></div></section>
+  <section id="tab-board" hidden><h2 class="page-title">Board</h2><p class="page-sub">One tap moves a task to its next stage and dates it today.</p><div class="filters"><select id="bComp"></select></div><div class="board" id="board"></div></section>
+  <section id="tab-timeline" hidden><h2 class="page-title">Timeline</h2><p class="page-sub">Start to due date. The glowing line is today, hatched bands are away periods, and a red ring marks overdue work.</p>
+    <div class="filters"><select id="tlRange"><option value="12w">Next 12 weeks</option><option value="6m">6 months</option><option value="all">To December 2027</option></select><select id="tlComp"></select></div>
+    <div class="tl"><div class="tlgrid" id="tl"></div></div></section>
+  <section id="tab-grants" hidden>
+    <h2 class="page-title">Grant applications</h2>
+    <p class="page-sub">Each application gets its own subitem under Grant applications, with tasks scheduled back from the deadline.</p>
+    <div class="grid2">
+      <div id="grantList"></div>
+      <form id="gForm" class="formcard" style="margin-top:0" autocomplete="off">
+        <h2 class="page-title" style="margin:0;font-size:24px">New grant application</h2>
+        <label class="f">Application name<input id="gName" required placeholder="e.g. Darwin Plus Local, Round 7"></label>
+        <div class="row2"><label class="f">Funder<input id="gFunder" placeholder="e.g. Defra via NIRAS"></label><label class="f">Reference (optional)<input id="gRef"></label></div>
+        <div class="row2"><label class="f">Start drafting<input type="date" id="gStart" required></label><label class="f">Submission deadline<input type="date" id="gDeadline" required></label></div>
+        <div class="row2"><label class="f">Lead<select id="gLead"></select></label><label class="f">Internal review by<select id="gRev"><option value="Faruk, Jim">Faruk and Jim</option><option value="Faruk">Faruk</option><option value="Jim">Jim</option></select></label></div>
+        <div class="f" style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;color:var(--muted);font-weight:500">Team</span><div class="teamchips" id="gTeams"></div><div class="chips" id="gPeople"></div></div>
+        <div class="f" style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;color:var(--muted);font-weight:500">Tasks to create (dates are spread between start and deadline)</span><div class="tplist" id="gTpl"></div></div>
+        <label class="f">Notes<input id="gNote" placeholder="e.g. Submit through the online portal only"></label>
+        <p class="warnline" id="gWarn" hidden></p>
+        <div class="actions"><button class="cta" type="submit">Create application and tasks</button></div>
+      </form>
+    </div>
+  </section>
+  <section id="tab-people" hidden><h2 class="page-title">People</h2><p class="page-sub">Open work by person (as lead or support), and what you are waiting on them for.</p><div class="people" id="people"></div></section>
+  <section id="tab-all" hidden>
+    <h2 class="page-title">All tasks</h2>
+    <div class="filters">
+      <select id="fComp"></select><select id="fStage"><option value="">All stages</option><option value="upcoming">Upcoming</option><option value="progress">In progress</option><option value="review">With reviewer</option><option value="ready">Ready to finalise</option><option value="done">Done</option><option value="overdue">Overdue</option></select>
+      <select id="fLead"></select>
+      <input id="fText" placeholder="Search task, deliverable or person">
+    </div>
+    <div class="panel listpanel"><div id="allList"></div></div>
+  </section>
+  <section id="tab-more" hidden>
+    <h2 class="page-title">More</h2>
+    <div class="morelist">
+      <button data-tab="board"><b>Board</b><span>Move tasks through review and submission</span></button>
+      <button data-tab="components"><b>Components</b><span>Progress by component and subitem</span></button>
+      <button data-tab="timeline"><b>Timeline</b><span>Start to due dates, away periods, through to December 2027</span></button>
+      <button data-tab="grants"><b>Grant applications</b><span>Track applications and create new ones</span></button>
+      <button data-tab="people"><b>People</b><span>Open work and who you are waiting on</span></button>
+      <button data-tab="all"><b>All tasks</b><span>Search and filter everything</span></button>
+      <button data-tab="data"><b>Data, Excel and backups</b><span>Import your list, export, back up, away periods</span></button>
+    </div>
+  </section>
+  <section id="tab-data" hidden>
+    <h2 class="page-title">Data, Excel and backups</h2>
+    <p class="page-sub">Your tasks live only on this device. Download a backup now and then and keep it in Google Drive or email.</p>
+    <div class="grid2">
+      <div class="panel datap"><h2><span>Import tasks from Excel</span></h2>
+        <p class="hint">First sheet, one row per task. Columns it reads (any order): Component, Subitem, Task, Work involved, Deliverable, Lead, Support personnel (comma separated), Start date, Due date, Priority, Risk, Critical path #, Checklist ("[x] item; [ ] item"), Waiting on, Submitted, Reviewed by, Reviewed, Final submission. New components, subitems and people are added automatically.</p>
+        <div class="actions"><button class="cta" data-act="import">Choose Excel file</button><label class="hint" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="impReplace" style="width:auto"> Replace all current tasks</label></div>
+        <p class="hint" id="impInfo"></p></div>
+      <div class="panel datap"><h2><span>Export to Excel</span></h2>
+        <p class="hint">Sheets: Tasks (with stage, overdue flag and checklist), Pathway, Components, Activity log.</p>
+        <div class="actions"><button class="cta ghost" data-act="export">Download Excel</button></div></div>
+      <div class="panel datap"><h2><span>Backup and restore</span></h2>
+        <p class="hint" id="backupInfo"></p>
+        <div class="actions"><button class="cta ghost" data-act="backup">Download backup</button><button class="btn" data-act="restore">Restore from file</button></div>
+        <div class="confirm" id="restoreConfirm" hidden>Replace everything on this device with the file? <button class="btn danger" id="restoreYes">Replace</button><button class="btn" id="restoreNo">Cancel</button></div></div>
+      <div class="panel datap"><h2><span>Away periods</span></h2>
+        <p class="hint">Your tasks should not fall due while you are away. The app flags any that do.</p>
+        <div class="awaylist" id="awayList"></div>
+        <div class="row2" style="margin-top:10px"><label class="f">From<input type="date" id="awFrom"></label><label class="f">To<input type="date" id="awTo"></label></div>
+        <div class="addsub"><input id="awNote" placeholder="Note, e.g. Leave"><button class="btn sm" id="awAdd">Add</button></div></div>
+      <div class="panel datap"><h2><span>People and plan</span></h2>
+        <div class="addsub"><input id="newPerson" placeholder="Add a support person"><button class="btn sm" id="addPerson">Add</button></div>
+        <div class="actions" style="margin-top:14px"><button class="btn" id="reSeed">Add any missing MozBlue plan tasks</button><button class="btn" id="clearEx">Remove example tasks</button></div>
+        <p class="hint" id="exInfo"></p></div>
+    </div>
+    <input type="file" id="impFile" accept=".xlsx,.xls,.csv" hidden><input type="file" id="restoreFile" accept=".json,application/json" hidden>
+  </section>
+  <section id="tab-add" hidden>
+    <h2 class="page-title" id="formTitle">New task</h2>
+    <form id="form" class="formcard" autocomplete="off">
+      <label class="f">Task title<input id="tTitle" required placeholder="e.g. Respond to AENOR pre-validation findings"></label>
+      <div class="row2">
+        <label class="f">Component<select id="tComp"></select></label>
+        <label class="f">Subitem<select id="tSub"></select></label>
+      </div>
+      <label class="f">Work involved<textarea id="tWork" placeholder="What needs doing, in a few lines"></textarea></label>
+      <label class="f">Deliverable<input id="tDel" placeholder="e.g. Revised PD section, response matrix"></label>
+      <div class="row2">
+        <label class="f">Lead<select id="tLead"></select></label>
+        <label class="f">Critical path # (optional)<input type="number" id="tPath" min="1" max="99" placeholder="e.g. 21"></label>
+      </div>
+      <div class="f" style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;color:var(--muted);font-weight:500">Support personnel (tap a team to add all its members)</span><div class="teamchips" id="tTeams"></div><div class="chips" id="tPeople"></div></div>
+      <div class="row2">
+        <label class="f">Start date<input type="date" id="tStart"></label>
+        <label class="f">Due date<input type="date" id="tDue"></label>
+      </div>
+      <p class="warnline" id="awayWarn" hidden></p>
+      <div class="row2">
+        <label class="f">Priority<select id="tPri"><option>High</option><option selected>Medium</option><option>Low</option></select></label>
+        <label class="f">Risk<select id="tRisk"><option value="">Not set</option><option>High</option><option>Medium</option><option>Low</option></select></label>
+      </div>
+      <label class="f">Waiting on (optional)<select id="tWait"></select></label>
+      <div class="f" style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between;align-items:center">Checklist (optional; tick to mark done, × to delete an item) <span><span class="clc" id="clCount"></span> <button type="button" class="btn sm" id="clClear" hidden>Delete whole checklist</button></span></span>
+        <div class="cl" id="tCl"></div>
+        <div class="addsub" style="margin-top:4px"><input id="clNew" placeholder="Add a checklist item, then press Enter"><button class="btn sm" type="button" id="clAdd">Add</button></div></div>
+      <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;color:var(--muted);font-weight:500">Review and submission</span>
+        <div class="flow">
+          <div class="stepbox" id="sb1"><b>1 · Submitted for review</b><input type="date" id="tSubm"></div>
+          <div class="stepbox" id="sb2"><b>2 · Reviewed by</b><select id="tRevBy"><option value="">Not yet</option><option>Faruk</option><option>Jim</option></select><input type="date" id="tRev"></div>
+          <div class="stepbox" id="sb3"><b>3 · Final submission</b><input type="date" id="tFinal"></div>
+        </div>
+      </div>
+      <label class="f">Note for the log (optional)<input id="tNote" placeholder="e.g. Sent draft to SCA for comments"></label>
+      <div class="log" id="tLog" hidden></div>
+      <div class="actions"><button class="cta" type="submit" id="saveBtn">Save task</button><button class="btn" type="button" id="clearBtn">Clear</button><button class="btn danger" type="button" id="delBtn" hidden>Delete this task</button></div>
+      <div class="confirm" id="delConfirm" hidden>Delete this task? <button class="btn danger" id="delYes" type="button">Delete</button><button class="btn" id="delNo" type="button">Cancel</button></div>
+    </form>
+  </section>
+</main>
+<nav class="bnav" aria-label="Sections">
+  <button data-tab="overview" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M12 3c-4 3-6 6-6 9 0 2.5 2 4 6 4s6-1.5 6-4c0-3-2-6-6-9z"/><path d="M12 16v5"/></svg>Overview</button>
+  <button data-tab="today" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Today</button>
+  <button data-tab="add" class="plus" aria-selected="false"><span class="c"><svg viewBox="0 0 24 24" style="stroke-width:2.2"><path d="M12 5v14M5 12h14"/></svg></span>Add</button>
+  <button data-tab="pathway" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="5" cy="18" r="2"/><circle cx="12" cy="11" r="2"/><circle cx="19" cy="5" r="2"/><path d="M6.5 16.5l4-4M13.5 9.5l4-3"/></svg>Pathway</button>
+  <button data-tab="more" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>More</button>
+</nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const TODAY = iso(new Date());
+const addDays = (s, n) => { const d = new Date(s + "T00:00:00"); d.setDate(d.getDate() + n); return iso(d); };
+const days = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5);
+const nice = s => { if (!s) return "-"; const d = new Date(s + "T00:00:00"); return d.getDate() + " " + MON[d.getMonth()]; };
+const niceY = s => { if (!s) return "-"; const d = new Date(s + "T00:00:00"); return d.getDate() + " " + MON[d.getMonth()] + " " + d.getFullYear(); };
+const uniq = a => [...new Set(a)];
+function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(()=> el.hidden = true, 2200); }
+$("#heroDate").textContent = new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+// ---------- configuration and seed plan (seed.js)
+const SEED = window.MBT_SEED || null;
+const CFG = {
+  palette: ["#8ea2ff","#5fd3a0","#f2a65a","#c99bf5","#7fd6e0","#f0d27a","#ff9fb5"],
+  components: [{id:"vv", name:"VCS-CCB validation and verification", color:"#8ea2ff", subs:["General"]}],
+  people: ["Shees","Faruk","Jim"], reviewers: ["Faruk","Jim"], teams: {}, away: [], grants: [], me: "Shees", target: {date:"2027-12-31", label:"Credits issued (Dec 2027)"},
+};
+const T = (o) => ({id: Math.random().toString(36).slice(2,8), priority:"Medium", people:[], log:[], waitingOn:"", lead:"", risk:"", path:null, checklist:[], ...o});
+const clone = o => JSON.parse(JSON.stringify(o));
+function applyCfg(c){ if (!c) return; for (const k of ["components","people","reviewers","teams","away","grants","me","target"]) if (c[k] != null) CFG[k] = clone(c[k]); }
+function mergeCfg(c){ if (!c) return;
+  for (const sc of c.components){ const m = CFG.components.find(x => x.id === sc.id); if (!m) CFG.components.push(clone(sc)); else sc.subs.forEach(s => { if (!m.subs.includes(s)) m.subs.push(s); }); }
+  c.people.forEach(p => { if (!CFG.people.includes(p)) CFG.people.push(p); });
+  for (const k in c.teams) if (!CFG.teams[k]) CFG.teams[k] = clone(c.teams[k]);
+  c.away.forEach(a => { if (!CFG.away.some(x => x.from === a.from && x.to === a.to)) CFG.away.push(clone(a)); });
+  c.grants.forEach(g => { if (!CFG.grants.some(x => x.sub === g.sub)) CFG.grants.push(clone(g)); });
+  if (!CFG.target) CFG.target = clone(c.target); if (!CFG.me) CFG.me = c.me; }
+const seedTasks = () => SEED ? SEED.tasks.map(t => T(clone(t))) : [];
+
+// ---------- storage on this device
+const KEY = "mbt-data";
+let tasks, seedVer = null;
+function save(){ try { localStorage.setItem(KEY, JSON.stringify({v:2, cfg:CFG, tasks, seed:seedVer, savedAt:Date.now()})); localStorage.setItem("mbt-changes", String(+(localStorage.getItem("mbt-changes") || 0) + 1)); } catch(e){ toast("Could not save on this device"); } }
+function addMissingSeed(){ if (!SEED) return 0; mergeCfg(SEED.cfg); const have = new Set(tasks.map(t => t.id)); const add = seedTasks().filter(t => !have.has(t.id)); tasks = tasks.concat(add); seedVer = SEED.version; return add.length; }
+(function load(){ let d = null; try { d = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e){}
+  if (d && d.tasks){ tasks = d.tasks.map(t => T(t)); applyCfg(d.cfg); seedVer = d.seed || null;
+    if (SEED && seedVer !== SEED.version){
+      if (tasks.every(t => t.ex)){ tasks = seedTasks(); applyCfg(SEED.cfg); seedVer = SEED.version; }
+      else addMissingSeed();
+      save(); } }
+  else { if (SEED){ applyCfg(SEED.cfg); tasks = seedTasks(); seedVer = SEED.version; } else tasks = []; save(); try { localStorage.setItem("mbt-changes","0"); } catch(e){} } })();
+
+// ---------- stage, progress, away
+function stage(t){ if (t.final) return "done"; if (t.reviewed) return "ready"; if (t.submitted) return "review"; if (t.start && t.start > TODAY) return "upcoming"; return "progress"; }
+const overdue = t => !t.final && t.due && t.due < TODAY;
+const STAGE = {upcoming:["Upcoming","p-upcoming"], progress:["In progress","p-progress"], review:["With reviewer","p-review"], ready:["Ready to finalise","p-ready"], done:["Done","p-done"]};
+const comp = id => CFG.components.find(c => c.id === id) || {id, name:"Unknown", color:"#93a89e", subs:[]};
+const NEXT = {progress:["Mark submitted","submitted"], upcoming:["Start now","start"], review:["Mark reviewed","reviewed"], ready:["Final submitted","final"]};
+const clDone = t => (t.checklist || []).filter(c => c.done).length;
+const prog = t => t.final ? 1 : (t.checklist && t.checklist.length ? clDone(t) / t.checklist.length : 0);
+const isMine = t => (t.lead || CFG.me) === CFG.me;
+const myAway = () => CFG.away.filter(a => !a.who || a.who === CFG.me);
+const awayHit = d => d ? myAway().find(a => d >= a.from && d <= a.to) : null;
+const awayClash = t => !t.final && isMine(t) && awayHit(t.due);
+const involves = (t, p) => t.lead === p || t.people.includes(p) || (CFG.teams[t.lead] || []).includes(p);
+
+function dueLabel(t){ if (t.final) return `<span class="due">Final ${nice(t.final)}</span>`; if (!t.due) return `<span class="due warn">No due date</span>`;
+  const d = days(TODAY, t.due); return `<span class="due ${d < 0 ? "bad" : d <= 3 ? "warn" : ""}">${d < 0 ? Math.abs(d) + "d late" : d === 0 ? "Due today" : "Due " + (d > 300 ? niceY(t.due) : nice(t.due))}</span>`; }
+function metaLine(t){ const c = comp(t.comp); const bits = [];
+  if (t.path) bits.push("#" + t.path); bits.push(esc(c.name) + " · " + esc(t.sub));
+  if (t.lead) bits.push(`<span class="lead">Lead ${esc(t.lead)}</span>`); if (t.people.length) bits.push(esc(t.people.join(", ")));
+  return bits.join(" · "); }
+function taskRow(t){ const c = comp(t.comp), s = stage(t), n = (t.checklist || []).length;
+  return `<div class="task" data-id="${t.id}"><span class="bar4" style="background:${c.color}"></span><span class="t"><b>${esc(t.title)}</b><span class="meta">${metaLine(t)}</span>${t.waitingOn ? `<span class="wait">Waiting on ${esc(t.waitingOn)}</span>` : ""}</span>
+    <span class="r"><span class="pill ${STAGE[s][1]}">${s === "ready" ? "Reviewed by " + esc(t.reviewedBy || "") : STAGE[s][0]}</span>${dueLabel(t)}${n ? `<span class="clc">${clDone(t)}/${n} checked</span>` : ""}${awayClash(t) ? `<span class="awayflag">Due while away</span>` : ""}${t.priority === "High" && s !== "done" ? `<span class="flag">High priority</span>` : ""}</span></div>`; }
+function list(el, arr, empty){ $(el).innerHTML = arr.length ? arr.map(taskRow).join("") : `<div class="empty">${empty}</div>`; }
+const byDue = (a,b) => (a.due || "9999").localeCompare(b.due || "9999");
+
+// ---------- render
+let tab = "overview";
+function render(){
+  const open = tasks.filter(t => !t.final);
+  if (tab === "overview" || tab === "today"){
+    const counts = {overdue: open.filter(overdue).length}; for (const k in STAGE) counts[k] = tasks.filter(t => stage(t) === k).length;
+    $("#stages").innerHTML = [["overdue","Overdue","var(--bad)"],["progress","In progress","var(--warn)"],["review","With reviewer","var(--peri-2)"],["ready","Ready to finalise","var(--c4)"],["upcoming","Upcoming","#9fe3bd"],["done","Done","var(--good)"]]
+      .map(([k,l,c]) => `<button class="st${k === "overdue" && counts[k] ? " alert" : ""}" data-stage="${k}"><span class="v">${counts[k]}</span><span class="k"><i class="dot" style="background:${c}"></i>${l}</span></button>`).join("");
+    $$("#stages .st").forEach(b => b.onclick = () => { $("#fStage").value = b.dataset.stage; show("all"); });
+    const od = open.filter(overdue).sort(byDue), soon = open.filter(t => !overdue(t) && t.due && days(TODAY, t.due) <= 7).sort(byDue);
+    const rev = tasks.filter(t => stage(t) === "review").sort(byDue), rdy = tasks.filter(t => stage(t) === "ready").sort(byDue);
+    const wt = open.filter(t => t.waitingOn).sort(byDue), up = tasks.filter(t => stage(t) === "upcoming" && days(TODAY, t.start) <= 14).sort((a,b) => a.start.localeCompare(b.start));
+    list("#overdue", od, "Nothing overdue."); list("#soon", soon, "Nothing due this week."); list("#withRev", rev, "Nothing with Faruk or Jim right now.");
+    list("#ready", rdy, "Nothing waiting for final submission."); list("#waiting", wt, "Nothing blocked."); list("#upcoming", up, "Nothing starting soon.");
+    // away period: what has to be done before leaving
+    const nextAway = myAway().filter(a => a.to >= TODAY).sort((a,b) => a.from.localeCompare(b.from))[0];
+    if (nextAway && days(TODAY, nextAway.from) <= 21){
+      const now = nextAway.from <= TODAY, before = open.filter(t => isMine(t) && !overdue(t) && t.due && t.due < nextAway.from).sort(byDue), clash = open.filter(awayClash);
+      $("#awayBox").hidden = false;
+      $("#awayBox").innerHTML = `<h2>${now ? "You are away until " + niceY(nextAway.to) : "Away " + nice(nextAway.from) + " to " + niceY(nextAway.to) + " · in " + days(TODAY, nextAway.from) + " day" + (days(TODAY, nextAway.from) === 1 ? "" : "s")}</h2>
+        <p>${now ? "Your tasks pick up again on " + nice(addDays(nextAway.to, 1)) + "." : before.length + " of your open tasks fall due before you leave" + (od.filter(isMine).length ? ", plus " + od.filter(isMine).length + " already overdue" : "") + "."}${clash.length ? ` <span class="awayflag">${clash.length} of your tasks fall due while you are away.</span>` : ""}</p>
+        ${now ? "" : before.map(taskRow).join("")}${clash.map(taskRow).join("")}`;
+    } else $("#awayBox").hidden = true;
+    const moving = open.filter(t => stage(t) !== "upcoming").length, tgt = CFG.target, mLeft = tgt ? Math.max(0, Math.round(days(TODAY, tgt.date) / 30.4)) : 0;
+    $("#heroTitle").innerHTML = `${moving} task${moving === 1 ? "" : "s"} in motion.<br>${od.length ? `<em>${od.length} overdue.</em>` : "<em>Nothing overdue.</em>"}`;
+    $("#heroLede").textContent = `${soon.length} due this week, ${rev.length} with Faruk or Jim and ${up.length} starting in the next two weeks.${tgt ? ` ${mLeft} months to ${tgt.label.replace(/\s*\(.*\)/, "").toLowerCase()}.` : ""}`;
+    $("#todaySub").textContent = od.length + " overdue, " + soon.length + " due in the next 7 days, " + up.length + " starting in the next two weeks.";
+    const gates = tasks.filter(t => t.cp && !t.final && !overdue(t)).sort(byDue).slice(0, 5); list("#ovGates", gates, "No open pathway activities."); $("#nGate").textContent = tasks.filter(t => t.cp && t.final).length + "/" + tasks.filter(t => t.cp).length + " done";
+    const gr = CFG.grants.filter(g => g.deadline >= TODAY).sort((a,b) => a.deadline.localeCompare(b.deadline)); $("#nGr").textContent = gr.length;
+    $("#ovGrants").innerHTML = gr.length ? gr.map(g => { const gt = tasks.filter(t => t.comp === "ga" && t.sub === g.sub); return `<div class="task" data-gr="${esc(g.sub)}"><span class="bar4" style="background:var(--c3)"></span><span class="t"><b>${esc(g.name)}</b><span class="meta">${gt.filter(t => t.final).length}/${gt.length} tasks done · lead ${esc(g.lead || "")}</span></span><span class="r"><span class="due ${days(TODAY, g.deadline) <= 14 ? "warn" : ""}">${days(TODAY, g.deadline)} days</span><span class="due">${niceY(g.deadline)}</span></span></div>`; }).join("") : `<div class="empty">No open applications.</div>`;
+    $("#nOver").textContent = od.length; $("#nSoon").textContent = soon.length; $("#nRev").textContent = rev.length; $("#nReady").textContent = rdy.length; $("#nWait").textContent = wt.length; $("#nUp").textContent = up.length;
+  }
+  if (tab === "pathway") renderPathway();
+  if (tab === "grants") renderGrants();
+  if (tab === "components"){
+    $("#comps").innerHTML = CFG.components.map(c => { const ct = tasks.filter(t => t.comp === c.id), dn = ct.filter(t => t.final).length, od = ct.filter(overdue).length;
+      const pc = ct.length ? Math.round(dn / ct.length * 100) : 0, C = 2 * Math.PI * 26;
+      return `<div class="comp" style="--cc:${c.color}"><div class="ringrow"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="7"/><circle cx="32" cy="32" r="26" fill="none" stroke="${c.color}" stroke-width="7" stroke-linecap="round" opacity="${pc ? 1 : 0}" stroke-dasharray="${C * pc / 100} ${C}"/></svg><div><h3>${esc(c.name)}</h3>
+      <div class="sum" style="margin:2px 0 0">${ct.length} tasks · ${dn} done · ${ct.length - dn} open${od ? ` · <span style="color:var(--bad)">${od} overdue</span>` : ""}</div></div><span class="pct" style="margin-left:auto">${pc}%</span></div>
+      ${c.subs.map(s => { const st = ct.filter(t => t.sub === s), n = st.length || 1; const seg = k => st.filter(t => stage(t) === k).length / n * 100;
+        return `<div class="sub" data-c="${c.id}" data-s="${esc(s)}"><span>${esc(s)}</span><span class="track"><i style="width:${seg("done")}%;background:var(--good)"></i><i style="width:${seg("ready")+seg("review")}%;background:${c.color};opacity:.7"></i><i style="width:${seg("progress")}%;background:var(--warn);opacity:.55"></i></span><span class="c">${st.filter(t=>t.final).length}/${st.length}</span></div>`; }).join("")}
+      <div class="addsub"><input placeholder="New subitem" data-new="${c.id}"><button class="btn sm" data-addsub="${c.id}">Add</button></div></div>`; }).join("")
+      + `<p class="hint" style="margin-top:12px">Bar: green done, colour with reviewer or ready, amber in progress. Tap a subitem to see its tasks.</p>`;
+    $$("[data-addsub]").forEach(b => b.onclick = () => { const id = b.dataset.addsub, inp = $(`[data-new="${id}"]`); if (inp.value.trim()){ comp(id).subs.push(inp.value.trim()); save(); refreshOptions(); toast("Subitem added"); render(); } });
+    $$(".sub").forEach(r => r.onclick = () => { $("#fComp").value = r.dataset.c; $("#fText").value = r.dataset.s; show("all"); });
+  }
+  if (tab === "board"){
+    const f = $("#bComp").value; const cols = ["upcoming","progress","review","ready","done"];
+    $("#board").innerHTML = cols.map(k => { const ts = tasks.filter(t => stage(t) === k && (!f || t.comp === f)).sort(byDue);
+      return `<div class="colb"><h4><span>${STAGE[k][0]}</span><span>${ts.length}</span></h4>${ts.map(t => { const c = comp(t.comp), n = (t.checklist || []).length;
+        return `<div class="card" data-id="${t.id}" style="--cc:${c.color}"><b>${esc(t.title)}</b><span class="meta">${t.path ? "#" + t.path + " · " : ""}${esc(t.sub)}${t.lead ? " · " + esc(t.lead) : ""}${t.reviewedBy && k === "ready" ? " · reviewed by " + esc(t.reviewedBy) : ""}${n ? " · " + clDone(t) + "/" + n : ""}</span><div class="row">${dueLabel(t)}${NEXT[k] ? `<button class="adv" data-adv="${t.id}">${NEXT[k][0]}</button>` : ""}</div></div>`; }).join("") || `<div class="empty">None</div>`}</div>`; }).join("");
+    $$("[data-adv]").forEach(b => b.onclick = ev => { ev.stopPropagation(); advance(b.dataset.adv); });
+  }
+  if (tab === "timeline") renderTimeline();
+  const AV = ["#8ea2ff","#5fd3a0","#f2a65a","#c99bf5","#7fd6e0","#f0d27a"];
+  if (tab === "people"){
+    $("#people").innerHTML = CFG.people.map(p => { const pt = tasks.filter(t => !t.final && involves(t, p)).sort(byDue), wt = tasks.filter(t => !t.final && t.waitingOn === p), rv = CFG.reviewers.includes(p) ? tasks.filter(t => stage(t) === "review") : [];
+      if (!pt.length && !wt.length && !rv.length) return ""; const led = pt.filter(t => t.lead === p).length;
+      return `<div class="person"><div class="ph"><span class="avatar" style="background:${AV[CFG.people.indexOf(p) % AV.length]}">${esc(p.split(" ").map(w=>w[0]).join("").slice(0,2))}</span><div><b>${esc(p)}${p === CFG.me ? " (you)" : ""}</b><span>${pt.length} open task${pt.length === 1 ? "" : "s"}${led ? ` · leads ${led}` : ""}${wt.length ? ` · <span style="color:var(--warn)">you are waiting on ${wt.length}</span>` : ""}${rv.length ? ` · ${rv.length} awaiting review` : ""}</span></div></div>
+        <ul>${pt.map(t => `<li class="task" data-id="${t.id}" style="display:flex;grid-template-columns:none;padding:7px 0"><span>${esc(t.title)}</span>${dueLabel(t)}</li>`).join("")}</ul></div>`; }).join("") + `<p class="hint" style="margin-top:12px">People with nothing open are hidden.</p>`;
+  }
+  if (tab === "data"){ updateBackupInfo(); renderAway(); const ne = tasks.filter(t => t.ex).length; $("#exInfo").textContent = (ne ? ne + " example task" + (ne === 1 ? " is" : "s are") + " still in the list. " : "") + (SEED ? "Plan version " + SEED.version + "." : ""); $("#clearEx").hidden = !ne; $("#reSeed").hidden = !SEED; }
+  $("#exTag").hidden = !tasks.some(t => t.ex);
+  if (tab === "all"){
+    const fc = $("#fComp").value, fs = $("#fStage").value, fl = $("#fLead").value, q = $("#fText").value.toLowerCase();
+    const arr = tasks.filter(t => (!fc || t.comp === fc) && (!fs || (fs === "overdue" ? overdue(t) : stage(t) === fs)) && (!fl || (fl === "__me" ? isMine(t) : involves(t, fl))) && (!q || [t.title,t.sub,t.deliverable,t.work,t.lead,t.people.join(" "),t.path ? "#" + t.path : ""].join(" ").toLowerCase().includes(q))).sort(byDue);
+    list("#allList", arr, "No tasks match.");
+  }
+  $$(".task,.card,.tlrow .b,.pwrow,.gdot").forEach(el => el.onclick = () => el.dataset.gr ? show("grants") : edit(el.dataset.id));
+}
+
+// ---------- pathway to issuance
+function renderPathway(){
+  const ms = tasks.filter(t => t.cp).sort((a,b) => (a.path || 99) - (b.path || 99)), done = ms.filter(t => t.final).length, late = ms.filter(overdue), hi = ms.filter(t => !t.final && t.risk === "High");
+  const tgt = CFG.target || {date:"2027-12-31", label:"Credits issued"}, mLeft = Math.max(0, Math.round(days(TODAY, tgt.date) / 30.4));
+  const nextG = ms.filter(t => !t.final && t.due >= TODAY).sort(byDue)[0];
+  $("#pwSum").innerHTML = `<div class="kpi"><span class="v">${done}/${ms.length}</span><span class="k">activities complete</span></div>
+    <div class="kpi${late.length ? " alert" : ""}"><span class="v">${late.length}</span><span class="k">past due date</span></div>
+    <div class="kpi"><span class="v">${hi.length}</span><span class="k">open and high risk</span></div>
+    <div class="kpi"><span class="v">${mLeft}</span><span class="k">months to ${esc(tgt.label)}</span></div>`;
+  // strip from earliest start to target
+  const s0 = ms.reduce((m,t) => t.start && t.start < m ? t.start : m, TODAY).slice(0,7) + "-01", span = Math.max(1, days(s0, tgt.date)), x = d => Math.max(0, Math.min(100, days(s0, d) / span * 100));
+  let mlabs = "", d = new Date(s0 + "T00:00:00"); while (iso(d) <= tgt.date){ if (d.getMonth() % 3 === 0) mlabs += `<span class="mlab" style="left:${x(iso(d))}%">${MON[d.getMonth()]} ${String(d.getFullYear()).slice(2)}</span>`; d.setMonth(d.getMonth() + 1); }
+  const col = t => t.final ? "var(--good)" : overdue(t) ? "var(--bad)" : stage(t) === "upcoming" ? "#9fe3bd" : "var(--warn)";
+  $("#pwStrip").innerHTML = `<div class="rail">${mlabs}<i class="tmark" style="left:${x(TODAY)}%"></i>${ms.map(t => `<span class="gdot${overdue(t) ? " late" : ""}" data-id="${t.id}" title="#${t.path} ${esc(t.title)}, due ${niceY(t.due)}" style="left:${x(t.due)}%;background:${col(t)}"></span>`).join("")}</div>
+    <div class="legend"><span><i class="dot" style="background:var(--good)"></i> Done</span><span><i class="dot" style="background:var(--warn)"></i> In progress</span><span><i class="dot" style="background:#9fe3bd"></i> Upcoming</span><span><i class="dot" style="background:var(--bad)"></i> Past due</span><span style="margin-left:auto">${nextG ? "Next due: #" + nextG.path + " " + esc(nextG.title) + ", " + niceY(nextG.due) : ""}</span></div>`;
+  const q = s => { const d = new Date(s + "T00:00:00"); return "Q" + (Math.floor(d.getMonth() / 3) + 1) + " " + d.getFullYear(); };
+  const groups = []; ms.slice().sort(byDue).forEach(t => { const k = q(t.due); let g = groups.find(x => x.k === k); if (!g) groups.push(g = {k, items:[]}); g.items.push(t); });
+  $("#pw").innerHTML = groups.map(g => `<div class="qtr">${g.k}<span>${g.items.filter(t => t.final).length}/${g.items.length} done</span></div>` + g.items.map(t => {
+    const linked = tasks.filter(x => !x.cp && x.path === t.path).sort(byDue), s = stage(t), n = t.checklist.length, pc = Math.round(prog(t) * 100);
+    return `<div class="pwitem"><div class="pwrow" data-id="${t.id}"><span class="pwn${t.final ? " done" : overdue(t) ? " late" : ""}">${t.path}</span>
+      <span><b>${esc(t.title)}</b><span class="meta">${esc(t.lead || "")}${t.people.length ? " with " + esc(t.people.join(", ")) : ""} · ${nice(t.start)} to ${niceY(t.due)}</span>${n ? `<div class="pbar"><i style="width:${pc}%"></i></div>` : ""}</span>
+      <span class="r">${t.risk ? `<span class="risk ${t.risk}">${t.risk} risk</span>` : ""}<span class="pill ${STAGE[s][1]}">${STAGE[s][0]}</span>${dueLabel(t)}${n ? `<span class="clc">${clDone(t)}/${n} checkpoints</span>` : ""}</span></div>
+      ${linked.length ? `<details><summary>${linked.length} linked task${linked.length === 1 ? "" : "s"} · ${linked.filter(x => x.final).length} done</summary>${linked.map(taskRow).join("")}</details>` : ""}</div>`; }).join("")).join("");
+}
+
+// ---------- timeline
+function renderTimeline(){
+  const r = $("#tlRange").value, fc = $("#tlComp").value; let start, end, ticks = [];
+  if (r === "12w"){ start = addDays(TODAY, -21 - ((new Date(TODAY + "T00:00:00").getDay() + 6) % 7)); end = addDays(start, 84); for (let i = 0; i < 12; i++) ticks.push(addDays(start, i * 7)); }
+  else { const s = new Date(TODAY + "T00:00:00"); s.setDate(1); s.setMonth(s.getMonth() - 1); start = iso(s);
+    const e = r === "6m" ? new Date(s.getFullYear(), s.getMonth() + 7, 1) : new Date((CFG.target ? CFG.target.date : "2027-12-31").slice(0,4), 12, 1); end = iso(e);
+    const d = new Date(start + "T00:00:00"); while (iso(d) < end){ ticks.push(iso(d)); d.setMonth(d.getMonth() + 1); } }
+  const span = days(start, end), x = d => Math.max(0, Math.min(100, days(start, d) / span * 100));
+  const lab = d => r === "12w" ? nice(d) : MON[+d.slice(5,7) - 1] + (d.slice(5,7) === "01" || d === ticks[0] ? " " + d.slice(2,4) : "");
+  let h = `<div class="tlhead"><span></span><div class="wk" style="grid-template-columns:repeat(${ticks.length},1fr)">${ticks.map(t => `<span>${lab(t)}</span>`).join("")}</div></div>`;
+  const bands = myAway().filter(a => a.to >= start && a.from <= end).map(a => `<i class="awayband" title="Away ${nice(a.from)} to ${nice(a.to)}" style="left:${x(a.from)}%;width:${Math.max(.6, x(addDays(a.to, 1)) - x(a.from))}%"></i>`).join("");
+  const lines = ticks.map(t => `<i class="weekline" style="left:${x(t)}%"></i>`).join("") + bands + `<i class="today-line" style="left:${x(TODAY)}%"></i>`;
+  for (const c of CFG.components){ if (fc && c.id !== fc) continue;
+    const ct = tasks.filter(t => t.comp === c.id && t.start && t.due && t.due >= start && t.start <= end).sort((a,b) => a.start.localeCompare(b.start) || a.due.localeCompare(b.due)); if (!ct.length) continue;
+    h += `<div class="tlgroup">${esc(c.name)}</div>` + ct.map(t => `<div class="tlrow"><span class="lab" title="${esc(t.title)}">${t.path ? "#" + t.path + " " : ""}${esc(t.title)}</span><div class="lane">${lines}<span class="b${t.final ? " done" : ""}${overdue(t) ? " late" : ""}" data-id="${t.id}" title="${esc(t.title)}: ${nice(t.start)} to ${niceY(t.due)}" style="left:${x(t.start)}%;width:${Math.max(1.2, x(addDays(t.due, 1)) - x(t.start))}%;background:${c.color}"></span></div></div>`).join(""); }
+  $("#tl").innerHTML = h;
+}
+
+// ---------- grant applications
+const GTPL = [
+  ["Kick-off: read guidance, allocate sections and owners", 0, .06, "Section allocation", "High"],
+  ["Concept, theory of change and narrative outline", .04, .22, "Narrative outline", "High"],
+  ["Logframe, indicators and M&E plan", .2, .55, "Logframe and M&E section", "Medium"],
+  ["Budget and budget narrative", .2, .65, "Budget template", "High"],
+  ["Letters of support", .06, .75, "Signed letters", "Medium"],
+  ["Draft narrative sections", .22, .7, "Narrative draft", "High"],
+  ["Safeguarding, GEDSI and risk annexes", .35, .7, "Annexes", "Medium"],
+  ["Consolidated draft to reviewers", .72, .84, "Reviewed draft", "High"],
+  ["Revisions after review", .84, .94, "Final draft", "Medium"],
+  ["Final checks and submission", .94, 1, "Submitted application", "High"],
+];
+let gSel = new Set();
+function gChips(){ $("#gTeams").innerHTML = Object.keys(CFG.teams).map(k => `<button type="button" class="chip team" data-gt="${esc(k)}">+ ${esc(k)}</button>`).join("");
+  $("#gPeople").innerHTML = CFG.people.map(p => `<button type="button" class="chip" aria-pressed="${gSel.has(p)}" data-gp="${esc(p)}">${esc(p)}</button>`).join("");
+  $$("[data-gt]").forEach(b => b.onclick = () => { CFG.teams[b.dataset.gt].forEach(p => gSel.add(p)); gChips(); });
+  $$("[data-gp]").forEach(c => c.onclick = () => { const p = c.dataset.gp; gSel.has(p) ? gSel.delete(p) : gSel.add(p); c.setAttribute("aria-pressed", gSel.has(p)); }); }
+function gReset(){ $("#gForm").reset(); gSel = new Set(); $("#gStart").value = TODAY; $("#gLead").innerHTML = CFG.people.map(p => `<option${p === CFG.me ? " selected" : ""}>${esc(p)}</option>`).join("");
+  $("#gTpl").innerHTML = GTPL.map((g, i) => `<label><input type="checkbox" checked data-tpl="${i}"> ${esc(g[0])}</label>`).join(""); gChips(); $("#gWarn").hidden = true; }
+function gPlan(){ const s = $("#gStart").value, dl = $("#gDeadline").value; if (!s || !dl || dl < s) return null; const R = days(s, dl);
+  return GTPL.map((g, i) => ({i, title:g[0], start:addDays(s, Math.round(g[1] * R)), due:addDays(s, Math.max(Math.round(g[2] * R), Math.round(g[1] * R))), deliverable:g[3], priority:g[4]})).filter(p => $(`[data-tpl="${p.i}"]`).checked); }
+function gCheck(){ const p = gPlan(), lead = $("#gLead").value; if (!p){ $("#gWarn").hidden = true; return; }
+  const hit = lead === CFG.me ? p.filter(x => awayHit(x.due)) : []; $("#gWarn").hidden = !hit.length;
+  $("#gWarn").textContent = hit.length ? hit.length + " of these tasks would fall due while you are away. They will be flagged so you can move them." : ""; }
+["#gStart","#gDeadline","#gLead"].forEach(id => $(id).addEventListener("change", gCheck)); $("#gTpl").addEventListener("change", gCheck);
+$("#gForm").addEventListener("submit", ev => { ev.preventDefault(); const name = $("#gName").value.trim(), p = gPlan(); if (!name) return; if (!p){ toast("Deadline must be after the start date"); return; }
+  const ga = CFG.components.find(c => c.id === "ga") || (CFG.components.push({id:"ga", name:"Grant applications", color:"#f2a65a", subs:[]}), CFG.components[CFG.components.length - 1]);
+  let sub = name; let k = 2; while (ga.subs.includes(sub)) sub = name + " (" + k++ + ")"; ga.subs.push(sub);
+  const lead = $("#gLead").value, team = [...gSel].filter(x => x !== lead), revs = $("#gRev").value.split(", ");
+  CFG.grants.push({sub, name, funder:$("#gFunder").value.trim(), ref:$("#gRef").value.trim(), deadline:$("#gDeadline").value, lead, team, note:$("#gNote").value.trim()});
+  p.forEach(x => tasks.push(T({title:x.title, comp:"ga", sub, start:x.start, due:x.due, lead, people: /reviewers/.test(x.title) ? uniq([...revs, ...team]) : team, priority:x.priority, deliverable:x.deliverable,
+    work: x.title.startsWith("Final") && $("#gNote").value.trim() ? $("#gNote").value.trim() : "", log:[{d:TODAY, t:"Created with grant application " + name}]})));
+  save(); refreshOptions(); toast(p.length + " tasks created for " + name); gReset(); render(); });
+function renderGrants(){
+  const gs = CFG.grants.slice().sort((a,b) => (a.deadline || "").localeCompare(b.deadline || ""));
+  $("#grantList").innerHTML = (gs.length ? gs.map(g => { const gt = tasks.filter(t => t.comp === "ga" && t.sub === g.sub), dn = gt.filter(t => t.final).length, od = gt.filter(overdue).length, left = g.deadline ? days(TODAY, g.deadline) : null;
+    const nx = gt.filter(t => !t.final).sort(byDue)[0], done = gt.length && dn === gt.length;
+    return `<div class="gcard"><h3>${esc(g.name)}</h3><div class="sum">${esc(g.funder || "")}${g.ref ? " · " + esc(g.ref) : ""} · lead ${esc(g.lead || "")}${g.team && g.team.length ? " · " + esc(g.team.join(", ")) : ""}</div>
+      <div class="cd">${done ? "Submitted" : left == null ? "-" : left < 0 ? Math.abs(left) + " days past" : left + " days"}<small>${g.deadline ? "deadline " + niceY(g.deadline) : ""}</small></div>
+      <div class="pbar" style="max-width:none"><i style="width:${gt.length ? dn / gt.length * 100 : 0}%"></i></div>
+      <div class="nx">${gt.length} tasks · ${dn} done${od ? ` · <span style="color:var(--bad)">${od} overdue</span>` : ""}${nx ? "<br>Next: " + esc(nx.title) + " (" + esc(nx.lead || "") + ", due " + nice(nx.due) + ")" : ""}${g.note ? `<br><span class="hint">${esc(g.note)}</span>` : ""}</div>
+      <div class="actions"><button class="btn sm" data-gsub="${esc(g.sub)}">Show tasks</button><button class="btn sm" data-gadd="${esc(g.sub)}">Add a task</button></div></div>`; }).join("") : `<div class="panel"><div class="empty">No grant applications yet.</div></div>`);
+  $$("[data-gsub]").forEach(b => b.onclick = () => { $("#fComp").value = "ga"; $("#fStage").value = ""; $("#fLead").value = ""; $("#fText").value = b.dataset.gsub; show("all"); });
+  $$("[data-gadd]").forEach(b => b.onclick = () => { resetForm(); $("#tComp").value = "ga"; subs(); $("#tSub").value = b.dataset.gadd; show("add"); });
+}
+
+// ---------- away periods
+function renderAway(){ $("#awayList").innerHTML = CFG.away.length ? CFG.away.map((a, i) => `<div><span>${niceY(a.from)} to ${niceY(a.to)}${a.note ? " · " + esc(a.note) : ""}</span><button class="btn sm" data-awdel="${i}">Remove</button></div>`).join("") : `<div><span class="hint">No away periods.</span></div>`;
+  $$("[data-awdel]").forEach(b => b.onclick = () => { CFG.away.splice(+b.dataset.awdel, 1); save(); render(); }); }
+$("#awAdd").onclick = () => { const f = $("#awFrom").value, t = $("#awTo").value; if (!f || !t || t < f){ toast("Pick a from and to date"); return; }
+  CFG.away.push({from:f, to:t, who:CFG.me, note:$("#awNote").value.trim()}); save(); $("#awFrom").value = $("#awTo").value = $("#awNote").value = ""; toast("Away period added"); render(); };
+
+function advance(id){ const t = tasks.find(x => x.id === id), s = stage(t);
+  if (s === "upcoming"){ t.start = TODAY; t.log.push({d:TODAY,t:"Started"}); }
+  if (s === "progress"){ t.submitted = TODAY; t.log.push({d:TODAY,t:"Submitted for review"}); }
+  if (s === "review"){ t.reviewed = TODAY; t.reviewedBy = t.reviewedBy || "Faruk"; t.log.push({d:TODAY,t:"Reviewed by " + t.reviewedBy}); }
+  if (s === "ready"){ t.final = TODAY; t.log.push({d:TODAY,t:"Final submission"}); }
+  save(); toast("Moved to " + STAGE[stage(t)][0]); render(); }
+
+// ---------- tabs
+let lastTab = "today";
+function show(t){ if (t !== "add") lastTab = t; tab = t; try { if (t !== "add") localStorage.setItem("mbt-tab", t); } catch(e){} $(".hero-body").hidden = t !== "overview"; $$("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t)); $$("main section").forEach(s => s.hidden = s.id !== "tab-" + t); window.scrollTo(0,0); render(); }
+$$("[data-tab]").forEach(b => b.onclick = () => { if (b.dataset.tab === "add") resetForm(); show(b.dataset.tab); });
+$$("[data-go]").forEach(b => b.onclick = () => { if (b.dataset.go === "add") resetForm(); show(b.dataset.go); });
+const compOpts = (all) => (all ? `<option value="">All components</option>` : "") + CFG.components.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+["#fComp","#fStage","#bComp","#fLead","#tlRange","#tlComp"].forEach(id => $(id).onchange = render); $("#fText").oninput = render;
+
+// ---------- task form
+let editId = null, sel = new Set(), cl = [];
+function subs(){ $("#tSub").innerHTML = comp($("#tComp").value).subs.map(s => `<option>${esc(s)}</option>`).join(""); }
+$("#tComp").onchange = subs;
+function chips(){ $("#tTeams").innerHTML = Object.keys(CFG.teams).map(k => `<button type="button" class="chip team" data-team="${esc(k)}">+ ${esc(k)}</button>`).join("");
+  $("#tPeople").innerHTML = CFG.people.map(p => `<button type="button" class="chip" aria-pressed="${sel.has(p)}" data-p="${esc(p)}">${esc(p)}</button>`).join("");
+  $$("#tTeams .chip").forEach(b => b.onclick = () => { CFG.teams[b.dataset.team].forEach(p => { if (p !== $("#tLead").value) sel.add(p); }); chips(); });
+  $$("#tPeople .chip").forEach(c => c.onclick = () => { const p = c.dataset.p; sel.has(p) ? sel.delete(p) : sel.add(p); c.setAttribute("aria-pressed", sel.has(p)); }); }
+function leadOpts(v){ const teams = Object.keys(CFG.teams); $("#tLead").innerHTML = CFG.people.map(p => `<option>${esc(p)}</option>`).join("") + (teams.length ? `<optgroup label="Teams">${teams.map(k => `<option>${esc(k)}</option>`).join("")}</optgroup>` : "");
+  if (v && ![...$("#tLead").options].some(o => o.value === v)) $("#tLead").insertAdjacentHTML("beforeend", `<option>${esc(v)}</option>`); $("#tLead").value = v || CFG.me; }
+function clRender(){ $("#tCl").innerHTML = cl.map((c, i) => `<div class="clrow${c.done ? " on" : ""}"><input type="checkbox" data-ci="${i}"${c.done ? " checked" : ""} aria-label="Done"><span>${esc(c.t)}</span><button type="button" data-cx="${i}" aria-label="Remove item">×</button></div>`).join("");
+  $("#clCount").textContent = cl.length ? cl.filter(c => c.done).length + "/" + cl.length : ""; $("#clClear").hidden = !cl.length;
+  $$("[data-ci]").forEach(b => b.onchange = () => { cl[+b.dataset.ci].done = b.checked; clRender(); });
+  $$("[data-cx]").forEach(b => b.onclick = () => { cl.splice(+b.dataset.cx, 1); clRender(); }); }
+function clAdd(){ const v = $("#clNew").value.trim(); if (!v) return; cl.push({t:v, done:false}); $("#clNew").value = ""; clRender(); }
+$("#clAdd").onclick = clAdd; $("#clClear").onclick = () => { cl = []; clRender(); toast("Checklist cleared; save to keep the change"); }; $("#clNew").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); clAdd(); } });
+function awayCheck(){ const lead = $("#tLead").value, d = $("#tDue").value, a = lead === CFG.me ? awayHit(d) : null;
+  $("#awayWarn").hidden = !a; $("#awayWarn").textContent = a ? "This due date falls in your away period (" + nice(a.from) + " to " + nice(a.to) + "). Consider " + nice(addDays(a.from, -1)) + " or " + nice(addDays(a.to, 1)) + "." : ""; }
+$("#tDue").addEventListener("change", awayCheck); $("#tLead").addEventListener("change", awayCheck);
+function waitOpts(){ $("#tWait").innerHTML = `<option value="">Nobody</option>` + CFG.people.map(p => `<option>${esc(p)}</option>`).join(""); }
+function steps(){ $("#sb1").classList.toggle("on", !!$("#tSubm").value); $("#sb2").classList.toggle("on", !!$("#tRev").value); $("#sb3").classList.toggle("on", !!$("#tFinal").value); }
+["#tSubm","#tRev","#tFinal"].forEach(id => $(id).onchange = steps);
+function resetForm(){ editId = null; $("#form").reset(); sel = new Set(); cl = []; subs(); leadOpts(CFG.me); chips(); clRender(); $("#tStart").value = TODAY; $("#tLog").hidden = true; $("#saveBtn").textContent = "Save task"; $("#formTitle").textContent = "New task"; $("#delBtn").hidden = true; $("#delConfirm").hidden = true; steps(); awayCheck(); }
+$("#clearBtn").onclick = resetForm;
+function edit(id){ const t = tasks.find(x => x.id === id); if (!t) return; editId = id; show("add");
+  $("#tTitle").value = t.title; $("#tComp").value = t.comp; subs(); if (![...$("#tSub").options].some(o => o.value === t.sub)) $("#tSub").insertAdjacentHTML("beforeend", `<option>${esc(t.sub)}</option>`); $("#tSub").value = t.sub; $("#tWork").value = t.work || ""; $("#tDel").value = t.deliverable || "";
+  leadOpts(t.lead || ""); $("#tPath").value = t.path || ""; sel = new Set(t.people); chips(); cl = clone(t.checklist || []); clRender();
+  $("#tStart").value = t.start || ""; $("#tDue").value = t.due || ""; $("#tPri").value = t.priority; $("#tRisk").value = t.risk || ""; $("#tWait").value = t.waitingOn || "";
+  $("#tSubm").value = t.submitted || ""; $("#tRevBy").value = t.reviewedBy || ""; $("#tRev").value = t.reviewed || ""; $("#tFinal").value = t.final || ""; steps(); awayCheck();
+  $("#tLog").hidden = !t.log.length; $("#tLog").innerHTML = `<b style="font-size:12px;color:var(--muted)">Activity log</b>` + t.log.map(l => `<div><span>${nice(l.d)}</span>${esc(l.t)}</div>`).join("");
+  $("#saveBtn").textContent = "Save changes"; $("#formTitle").textContent = t.cp ? "Pathway activity #" + t.path : "Edit task"; $("#delBtn").hidden = false; $("#delConfirm").hidden = true; }
+$("#form").addEventListener("submit", ev => { ev.preventDefault();
+  const o = {title:$("#tTitle").value.trim(), comp:$("#tComp").value, sub:$("#tSub").value, work:$("#tWork").value.trim(), deliverable:$("#tDel").value.trim(), lead:$("#tLead").value, people:[...sel].filter(p => p !== $("#tLead").value), path: +$("#tPath").value || null,
+    checklist: cl, start:$("#tStart").value, due:$("#tDue").value, priority:$("#tPri").value, risk:$("#tRisk").value, waitingOn:$("#tWait").value,
+    submitted:$("#tSubm").value || null, reviewedBy:$("#tRevBy").value, reviewed:$("#tRev").value || null, final:$("#tFinal").value || null};
+  const note = $("#tNote").value.trim();
+  if (editId){ const t = tasks.find(x => x.id === editId); const before = clDone(t); Object.assign(t, o); delete t.ex; if (clDone(t) !== before) t.log.push({d:TODAY,t:"Checklist " + clDone(t) + "/" + t.checklist.length}); if (note) t.log.push({d:TODAY,t:note}); }
+  else tasks.push(T({...o, log: note ? [{d:TODAY,t:note}] : [{d:TODAY,t:"Created"}]}));
+  save(); toast(editId ? "Task updated" : "Task added"); const back = editId && tasks.find(x => x.id === editId)?.cp ? "pathway" : editId ? (lastTab || "today") : "today"; resetForm(); show(back); });
+
+// ---------- generative mangrove canopy (original artwork, drawn in code)
+function canopy(){
+  const cv = $("#canopy"), hero = $("#hero"), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = hero.clientWidth, H = hero.clientHeight; cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, "#1d3a2c"); sky.addColorStop(.45, "#12281f"); sky.addColorStop(1, "#0b1812");
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  // light shafts
+  for (let i = 0; i < 5; i++){ const x = W * (.45 + rnd() * .5), w = 40 + rnd() * 120; const lg = g.createLinearGradient(x, 0, x - 200, H);
+    lg.addColorStop(0, "rgba(230,255,220,.10)"); lg.addColorStop(1, "rgba(230,255,220,0)"); g.fillStyle = lg;
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x + w, 0); g.lineTo(x + w - 260, H); g.lineTo(x - 260, H); g.fill(); }
+  // water
+  const wy = H * .80; const wg = g.createLinearGradient(0, wy, 0, H); wg.addColorStop(0, "rgba(120,160,140,.18)"); wg.addColorStop(1, "rgba(10,24,18,.9)");
+  g.fillStyle = wg; g.fillRect(0, wy, W, H - wy);
+  // trees: trunks, prop roots, leaf clusters; three depth layers
+  const layers = [{n: Math.ceil(W / 90), s: .55, c: [40, 78, 58], a: .55}, {n: Math.ceil(W / 140), s: .8, c: [30, 62, 45], a: .8}, {n: Math.ceil(W / 220), s: 1.1, c: [18, 42, 31], a: 1}];
+  for (const L of layers){
+    g.filter = L.s < .7 ? "blur(3px)" : L.s < 1 ? "blur(1px)" : "none";
+    for (let i = 0; i < L.n; i++){
+      const x = rnd() * W, top = H * (.18 + rnd() * .25) * (1.2 - L.s * .3), base = wy - 10 * L.s, col = `rgba(${L.c.join(",")},${L.a})`;
+      g.strokeStyle = `rgba(${L.c[0] - 8},${L.c[1] - 20},${L.c[2] - 14},${L.a})`; g.lineCap = "round";
+      g.lineWidth = 6 * L.s; g.beginPath(); g.moveTo(x, base - 40 * L.s); g.quadraticCurveTo(x + (rnd() - .5) * 30, (top + base) / 2, x + (rnd() - .5) * 20, top + 30); g.stroke();
+      const roots = 4 + Math.floor(rnd() * 4);
+      for (let r = 0; r < roots; r++){ const sx = x + (rnd() - .5) * 10, sy = base - (40 + rnd() * 70) * L.s, ex = x + (rnd() - .5) * 140 * L.s;
+        g.lineWidth = (1.5 + rnd() * 2.5) * L.s; g.beginPath(); g.moveTo(sx, sy); g.bezierCurveTo(sx + (ex - sx) * .2, sy - 30 * L.s, ex - (ex - sx) * .1, sy - 10 * L.s, ex, wy + 6 + rnd() * 10); g.stroke(); }
+      for (let k = 0; k < 26; k++){ const lx = x + (rnd() - .5) * 220 * L.s, ly = top + (rnd() - .3) * 120 * L.s, rr = (18 + rnd() * 38) * L.s;
+        const lg = g.createRadialGradient(lx - rr * .3, ly - rr * .3, 2, lx, ly, rr); lg.addColorStop(0, `rgba(${L.c[0] + 40},${L.c[1] + 50},${L.c[2] + 30},${L.a})`); lg.addColorStop(1, col);
+        g.fillStyle = lg; g.beginPath(); g.ellipse(lx, ly, rr, rr * .72, rnd() * 3, 0, 7); g.fill(); }
+    }
+  }
+  g.filter = "blur(2px)";
+  // top canopy band
+  for (let k = 0; k < W / 12; k++){ const lx = rnd() * W, ly = rnd() * H * .14, rr = 30 + rnd() * 60; g.fillStyle = `rgba(${14 + rnd() * 20},${34 + rnd() * 30},${24 + rnd() * 20},.95)`; g.beginPath(); g.ellipse(lx, ly, rr, rr * .7, rnd() * 3, 0, 7); g.fill(); }
+  g.filter = "none";
+  // reflections
+  g.globalAlpha = .16; g.save(); g.translate(0, wy * 2); g.scale(1, -1); g.drawImage(cv, 0, (wy - H * .25) * dpr, W * dpr, H * .25 * dpr, 0, wy - H * .25, W, H * .25); g.restore(); g.globalAlpha = 1;
+  for (let k = 0; k < 40; k++){ const y = wy + rnd() * (H - wy), x = rnd() * W; g.strokeStyle = "rgba(220,240,230,.07)"; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 30 + rnd() * 80, y); g.stroke(); }
+}
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(canopy, 150); });
+
+// ---------- delete
+$("#delBtn").onclick = () => $("#delConfirm").hidden = false;
+$("#delNo").onclick = () => $("#delConfirm").hidden = true;
+$("#delYes").onclick = () => { tasks = tasks.filter(t => t.id !== editId); save(); toast("Task deleted"); resetForm(); show("overview"); };
+
+// ---------- files
+const stamp = () => TODAY.replace(/-/g, "");
+let dlNs; if (window.claude && window.claude.use) window.claude.use("downloads").then(ns => dlNs = ns).catch(() => {});
+async function download(name, blob){ if (dlNs){ try { await dlNs.save({filename:name, data:blob}); } catch(e){ toast(e && e.code === "declined" ? "Download cancelled" : "Download not available here"); } return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); }
+function updateBackupInfo(){ let last = null, n = 0; try { last = localStorage.getItem("mbt-last-backup"); n = +(localStorage.getItem("mbt-changes") || 0); } catch(e){}
+  $("#backupInfo").textContent = (last ? "Last backup " + new Date(+last).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) + ". " : "No backup yet. ") + (n ? n + " change" + (n === 1 ? "" : "s") + " since then." : "Nothing new since then."); }
+$$("[data-act=backup]").forEach(b => b.onclick = () => { download("MozBlue_tasks_backup_" + stamp() + ".json", new Blob([JSON.stringify({app:"mozblue-tasks", version:2, seed:seedVer, exportedAt:new Date().toISOString(), cfg:CFG, tasks}, null, 1)], {type:"application/json"}));
+  try { localStorage.setItem("mbt-last-backup", String(Date.now())); localStorage.setItem("mbt-changes","0"); } catch(e){} updateBackupInfo(); toast("Backup downloaded"); });
+let pending = null;
+$$("[data-act=restore]").forEach(b => b.onclick = () => $("#restoreFile").click());
+$("#restoreFile").onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
+  try { const j = JSON.parse(await f.text()); if (j.app !== "mozblue-tasks" || !Array.isArray(j.tasks)) throw 0; pending = j; $("#restoreConfirm").hidden = false; } catch(e){ toast("That is not a MozBlue backup file"); } };
+$("#restoreNo").onclick = () => { pending = null; $("#restoreConfirm").hidden = true; };
+$("#restoreYes").onclick = () => { if (!pending) return; tasks = pending.tasks.map(t => T(t)); applyCfg(pending.cfg); seedVer = pending.seed || (SEED ? SEED.version : null);
+  save(); try { localStorage.setItem("mbt-changes","0"); localStorage.setItem("mbt-last-backup", String(Date.now())); } catch(e){} pending = null; $("#restoreConfirm").hidden = true; refreshOptions(); toast("Restored " + tasks.length + " tasks"); render(); };
+
+const clText = t => (t.checklist || []).map(c => (c.done ? "[x] " : "[ ] ") + c.t).join("; ");
+$$("[data-act=export]").forEach(b => b.onclick = () => {
+  const H = ["Component","Subitem","Critical path #","Task","Work involved","Deliverable","Lead","Support personnel","Start date","Due date","Priority","Risk","Checklist","Checklist done","Waiting on","Submitted","Reviewed by","Reviewed","Final submission","Stage","Overdue","Due while away","Days to due"];
+  const dt = s => s ? new Date(s + "T12:00:00") : "";
+  const rows = [...tasks].sort((a,b) => (a.comp + a.sub + (a.due || "")).localeCompare(b.comp + b.sub + (b.due || ""))).map(t => [comp(t.comp).name, t.sub, t.path || "", t.title, t.work || "", t.deliverable || "", t.lead || "", t.people.join(", "), dt(t.start), dt(t.due), t.priority, t.risk || "", clText(t), t.checklist.length ? clDone(t) + "/" + t.checklist.length : "", t.waitingOn || "", dt(t.submitted), t.reviewedBy || "", dt(t.reviewed), dt(t.final), STAGE[stage(t)][0], overdue(t) ? "Yes" : "", awayClash(t) ? "Yes" : "", t.due && !t.final ? days(TODAY, t.due) : ""]);
+  const P = [["#","Activity","Lead","Risk","Start","Due","Stage","Checkpoints done","Linked tasks","Overdue"]]; tasks.filter(t => t.cp).sort((a,b) => a.path - b.path).forEach(t => P.push([t.path, t.title, t.lead, t.risk, dt(t.start), dt(t.due), STAGE[stage(t)][0], t.checklist.length ? clDone(t) + "/" + t.checklist.length : "", tasks.filter(x => !x.cp && x.path === t.path).length, overdue(t) ? "Yes" : ""]));
+  const C = [["Component","Subitem","Tasks","Done","Open","Overdue"]]; CFG.components.forEach(c => c.subs.forEach(s => { const st = tasks.filter(t => t.comp === c.id && t.sub === s); C.push([c.name, s, st.length, st.filter(t => t.final).length, st.filter(t => !t.final).length, st.filter(overdue).length]); }));
+  const L = [["Date","Task","Entry"]]; tasks.forEach(t => (t.log || []).forEach(l => L.push([l.d, t.title, l.t]))); L.splice(1, L.length, ...L.slice(1).sort((a,b) => a[0].localeCompare(b[0])));
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet([H, ...rows], {dateNF:"dd mmm yyyy"}); ws["!cols"] = [28,24,8,44,50,30,16,30,12,12,10,9,60,9,14,12,12,12,14,16,9,10,11].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, "Tasks"); const wp = XLSX.utils.aoa_to_sheet(P, {dateNF:"dd mmm yyyy"}); wp["!cols"] = [5,48,16,9,12,12,16,12,10,9].map(w => ({wch:w})); XLSX.utils.book_append_sheet(wb, wp, "Pathway");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(C), "Components"); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(L), "Activity log");
+  download("MozBlue_tasks_" + stamp() + ".xlsx", new Blob([XLSX.write(wb, {type:"array", bookType:"xlsx"})], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})); toast("Excel downloaded"); });
+
+// Excel import: header names matched loosely, dates accepted as Excel dates or text
+$$("[data-act=import]").forEach(b => b.onclick = () => $("#impFile").click());
+const norm = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "");
+const FIELDS = {comp:["component"], sub:["subitem","subcomponent","sub","item"], title:["task","tasktitle","title","activity","taskname"], work:["workinvolved","work","description"], deliverable:["deliverable","deliverables","output"], lead:["lead","owner","responsible"], people:["supportpersonnel","support","personnel","people","team"], start:["startdate","start"], due:["duedate","due","deadline"], priority:["priority"], risk:["risk","riskstatus","risklevel"], path:["criticalpath","pathway","criticalpathno","cp"], checklist:["checklist","checkpoints"], waitingOn:["waitingon","blockedby"], submitted:["submitted","submission","submitteddate","submissiondate"], reviewedBy:["reviewedby","reviewer"], reviewed:["reviewed","revieweddate","reviewdate"], final:["finalsubmission","final","finalsubmitted","finaldate"]};
+function toISO(v){ if (v == null || v === "") return null; if (v instanceof Date && !isNaN(v)) return iso(new Date(v.getTime() + 432e5));
+  const s = String(v).trim(); if (/^(yes|y|true|done|x)$/i.test(s)) return TODAY; if (/^(no|n|false|-)$/i.test(s)) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return m[1] + "-" + m[2].padStart(2,"0") + "-" + m[3].padStart(2,"0");
+  m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/); if (m){ const y = m[3].length === 2 ? "20" + m[3] : m[3]; return y + "-" + m[2].padStart(2,"0") + "-" + m[1].padStart(2,"0"); }
+  const d = new Date(s); return isNaN(d) ? null : iso(d); }
+const parseCl = s => String(s || "").split(/;\s*|\n/).map(x => x.trim()).filter(Boolean).map(x => ({done:/^\[x\]/i.test(x), t:x.replace(/^\[[ x]?\]\s*/i, "")}));
+$("#impFile").onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ""; if (!f) return;
+  try {
+    const wb = XLSX.read(await f.arrayBuffer(), {type:"array", cellDates:true}), ws = wb.Sheets[wb.SheetNames[0]];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:"", raw:true});
+    const hi = aoa.findIndex(r => r.some(c => FIELDS.comp.includes(norm(c)) || FIELDS.title.includes(norm(c)))); if (hi < 0) throw new Error("No header row with Component or Task found");
+    const col = {}; aoa[hi].forEach((h, i) => { const n = norm(h); for (const k in FIELDS) if (col[k] == null && FIELDS[k].includes(n)) col[k] = i; });
+    const get = (r, k) => col[k] == null ? "" : r[col[k]];
+    const out = []; let lastComp = "", lastSub = "", newC = 0, newS = 0, newP = 0;
+    const person = p => { const m = CFG.people.find(x => norm(x) === norm(p)); if (m) return m; if (CFG.teams[p]) return p; CFG.people.push(p); newP++; return p; };
+    for (const r of aoa.slice(hi + 1)){
+      const title = String(get(r,"title") || "").trim(); const cn = String(get(r,"comp") || "").trim() || lastComp; const sn = String(get(r,"sub") || "").trim() || lastSub;
+      if (cn) lastComp = cn; if (sn) lastSub = sn; if (!title) continue;
+      let c = CFG.components.find(x => norm(x.name) === norm(cn)) || CFG.components.find(x => cn && (norm(x.name).includes(norm(cn)) || norm(cn).includes(norm(x.name).slice(0,8))));
+      if (!c){ c = {id:"c" + Math.random().toString(36).slice(2,6), name:cn || "Other", color:CFG.palette[CFG.components.length % CFG.palette.length], subs:[]}; CFG.components.push(c); newC++; }
+      const sub = sn || "General"; const exist = c.subs.find(x => norm(x) === norm(sub)); if (!exist){ c.subs.push(sub); newS++; }
+      const ppl = String(get(r,"people") || "").split(/[,;\/\n]+| and /).map(x => x.trim()).filter(Boolean).map(person);
+      const ld = String(get(r,"lead") || "").trim(); const pri = String(get(r,"priority") || "").trim(); const rk = String(get(r,"risk") || "").trim(); const rb = String(get(r,"reviewedBy") || "").trim();
+      const t = T({title, comp:c.id, sub: exist || sub, work:String(get(r,"work") || "").trim(), deliverable:String(get(r,"deliverable") || "").trim(), lead: ld ? person(ld) : "", people:ppl.filter(p => p !== ld), path: parseInt(get(r,"path")) || null, checklist: parseCl(get(r,"checklist")),
+        start:toISO(get(r,"start")) || "", due:toISO(get(r,"due")) || "", priority:/^h/i.test(pri) ? "High" : /^l/i.test(pri) ? "Low" : "Medium", risk:/^h/i.test(rk) ? "High" : /^m/i.test(rk) ? "Medium" : /^l/i.test(rk) ? "Low" : "", waitingOn:String(get(r,"waitingOn") || "").trim(),
+        submitted:toISO(get(r,"submitted")), reviewedBy:CFG.reviewers.find(x => norm(x) === norm(rb)) || rb, reviewed:toISO(get(r,"reviewed")), final:toISO(get(r,"final")), log:[{d:TODAY, t:"Imported from Excel"}]});
+      if (t.reviewedBy && !t.reviewed) t.reviewed = TODAY;
+      out.push(t); }
+    if (!out.length) throw new Error("No task rows found under the header");
+    tasks = $("#impReplace").checked ? out : tasks.concat(out); save(); refreshOptions(); render();
+    $("#impInfo").textContent = `Imported ${out.length} tasks. New: ${newC} components, ${newS} subitems, ${newP} people.`; toast("Imported " + out.length + " tasks");
+  } catch(e){ $("#impInfo").textContent = "Import failed: " + (e.message || "could not read the file"); } };
+
+$("#addPerson").onclick = () => { const v = $("#newPerson").value.trim(); if (!v || CFG.people.includes(v)) return; CFG.people.push(v); save(); refreshOptions(); $("#newPerson").value = ""; toast(v + " added"); };
+$("#clearEx").onclick = () => { tasks = tasks.filter(t => !t.ex); save(); toast("Example tasks removed"); render(); };
+$("#reSeed").onclick = () => { const n = addMissingSeed(); save(); refreshOptions(); toast(n ? n + " plan task" + (n === 1 ? "" : "s") + " added" : "All plan tasks are already in your list"); render(); };
+function refreshOptions(){ $("#fComp").innerHTML = compOpts(true); $("#bComp").innerHTML = compOpts(true); $("#tlComp").innerHTML = compOpts(true); $("#tComp").innerHTML = compOpts(false); subs();
+  $("#fLead").innerHTML = `<option value="">Anyone</option><option value="__me">My tasks (${esc(CFG.me)})</option>` + CFG.people.filter(p => p !== CFG.me).map(p => `<option>${esc(p)}</option>`).join("");
+  waitOpts(); leadOpts($("#tLead").value); chips(); gReset(); }
+
+refreshOptions(); resetForm(); let start = "overview"; try { start = localStorage.getItem("mbt-tab") || "overview"; } catch(e){} if (!document.getElementById("tab-" + start) || start === "add") start = "overview"; show(start); canopy();
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+
+</body>
+</html>
