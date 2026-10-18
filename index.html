@@ -295,6 +295,10 @@ input[type=date]{color-scheme:dark}
 .tag{font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;white-space:nowrap;background:rgba(127,150,244,.16);color:var(--peri-2)}
 .tag.pw{background:rgba(127,220,166,.12);color:#9fe3bd}
 @media (max-width:560px){.msrow{grid-template-columns:46px minmax(0,1fr)}.msrow .r{grid-column:2;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start}}
+.backbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.22);background:rgba(13,29,23,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text);border-radius:999px;padding:8px 14px 8px 10px;font-family:var(--font-display);font-size:14.5px;cursor:pointer;white-space:nowrap;margin-right:-8px}
+.backbtn:hover{border-color:var(--peri-2)}
+.backbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:560px){.backbtn span{display:none}.backbtn{padding:8px}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
@@ -304,6 +308,7 @@ input[type=date]{color-scheme:dark}
   <canvas id="canopy" aria-hidden="true"></canvas>
   <div class="wrap">
     <nav class="top">
+      <button type="button" class="backbtn" id="backBtn" hidden aria-label="Back to previous page"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>Back</span></button>
       <a class="mark" href="#" id="homeLink" aria-label="MozBlue, go to Overview">
         <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="none" stroke="#a3b4ff" stroke-width="1.5" opacity=".6"/><path d="M20 7c-5 4-7 8-7 12 0 3 2 5 7 5s7-2 7-5c0-4-2-8-7-12z" fill="#7fdca6"/><path d="M20 24v9M20 27c-3 1-5 3-6 6M20 27c3 1 5 3 6 6M20 29c-1.5 1-2.5 2.5-3 4M20 29c1.5 1 2.5 2.5 3 4" stroke="#eef4f0" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
         <span><b>MozBlue</b><small>Task tracker</small></span>
@@ -771,7 +776,16 @@ function advance(id){ const t = tasks.find(x => x.id === id), s = stage(t);
 
 // ---------- tabs
 let lastTab = "today";
-function show(t){ if (t !== "add") lastTab = t; tab = t; try { if (t !== "add") localStorage.setItem("mbt-tab", t); } catch(e){} $(".hero-body").hidden = t !== "overview"; $$("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t)); $$("main section").forEach(s => s.hidden = s.id !== "tab-" + t); window.scrollTo(0,0); render(); }
+// back navigation: own stack, mirrored into browser history so the phone back gesture works too
+const navStack = []; let useHist = false;
+try { history.replaceState({mbt:0}, ""); useHist = true; } catch(e){}
+function updateBack(){ $("#backBtn").hidden = !navStack.some(p => p.tab !== tab && p.tab !== "add"); }
+function goBack(){ let p; while ((p = navStack.pop()) && (p.tab === tab || p.tab === "add")){} if (!p){ updateBack(); return; } show(p.tab, {back:true, y:p.y}); }
+$("#backBtn").onclick = () => { if (useHist && history.state && history.state.mbt > 0) history.back(); else goBack(); };
+window.addEventListener("popstate", () => goBack());
+function show(t, opt){ opt = opt || {};
+  if (!opt.back && tab && tab !== t){ navStack.push({tab, y: window.scrollY}); if (navStack.length > 60) navStack.shift(); if (useHist){ try { history.pushState({mbt: navStack.length}, ""); } catch(e){ useHist = false; } } }
+  if (t !== "add") lastTab = t; tab = t; try { if (t !== "add") localStorage.setItem("mbt-tab", t); } catch(e){} $(".hero-body").hidden = t !== "overview"; $$("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t)); $$("main section").forEach(s => s.hidden = s.id !== "tab-" + t); render(); window.scrollTo(0, opt.y || 0); updateBack(); }
 $$("[data-tab]").forEach(b => b.onclick = () => { if (b.dataset.tab === "add") resetForm(); show(b.dataset.tab); });
 $$("[data-go]").forEach(b => b.onclick = () => { if (b.dataset.go === "add") resetForm(); show(b.dataset.go); });
 const compOpts = (all) => (all ? `<option value="">All components</option>` : "") + CFG.components.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
@@ -835,7 +849,7 @@ function collect(){ return {title:$("#tTitle").value.trim(), comp:$("#tComp").va
     checklist: clone(cl), deliverables: clone(dl).map(d => ({...d, title: d.title.trim() || "Untitled deliverable", link: d.link.trim(), note: d.note.trim()})), start:$("#tStart").value, due:$("#tDue").value, priority:$("#tPri").value, risk:$("#tRisk").value, waitingOn:$("#tWait").value, final:$("#tFinal").value || null}; }
 function logDlChanges(t, before){ for (const d of t.deliverables){ const b = before.find(x => x.id === d.id);
   if (!b) t.log.push({d:TODAY, t:"Deliverable added: " + d.title}); else if (b.status !== d.status) t.log.push({d:TODAY, t:d.title + ": " + DST[d.status][0] + (d.reviewer && (d.status === "review" || d.status === "accepted" || d.status === "changes") ? " (" + d.reviewer + ")" : "")}); } }
-function backTab(){ return editId && tasks.find(x => x.id === editId)?.cp ? "pathway" : editId ? (lastTab || "today") : "today"; }
+function backTab(){ return editId ? (lastTab || "today") : "today"; }
 $("#form").addEventListener("submit", ev => { ev.preventDefault(); const o = collect(), note = $("#tNote").value.trim();
   if (editId){ const t = tasks.find(x => x.id === editId); const before = clDone(t), bdl = clone(t.deliverables || []); Object.assign(t, o); delete t.ex; syncLegacy(t); logDlChanges(t, bdl);
     if (clDone(t) !== before) t.log.push({d:TODAY,t:"Checklist " + clDone(t) + "/" + t.checklist.length}); if (note) t.log.push({d:TODAY,t:note}); }
@@ -969,7 +983,7 @@ function refreshOptions(){ $("#fComp").innerHTML = compOpts(true); $("#bComp").i
   waitOpts(); leadOpts($("#tLead").value); chips(); gReset(); }
 
 refreshOptions(); $("#homeLink").onclick = e => { e.preventDefault(); show("overview"); };
-resetForm(); let start = "overview"; try { start = localStorage.getItem("mbt-tab") || "overview"; } catch(e){} if (!document.getElementById("tab-" + start) || start === "add") start = "overview"; show(start); canopy();
+resetForm(); let start = "overview"; try { start = localStorage.getItem("mbt-tab") || "overview"; } catch(e){} if (!document.getElementById("tab-" + start) || start === "add") start = "overview"; show(start, {back:true}); canopy();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
 </script>
